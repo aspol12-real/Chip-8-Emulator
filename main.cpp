@@ -5,6 +5,9 @@
 #include <vector>
 #include <random>
 
+void execute();
+
+
 int main()
 {
 
@@ -18,6 +21,8 @@ int main()
     const int width = 64;
     const int height = 32;
     const int CELLSIZE = 8;
+
+    const int INSTRUCTIONS_PER_FRAME = 1;
 
     //memory
     uint8_t RAM[4096] = {};
@@ -36,7 +41,7 @@ int main()
     bool keyBool = false;
     uint8_t key = 0xFF;
 
-    std::ifstream rom("roms/xmas.ch8", std::ios::in | std::ios::binary);
+    std::ifstream rom("roms/tetris.ch8", std::ios::in | std::ios::binary);
 
 
     //load font data into ram by hand
@@ -159,7 +164,11 @@ int main()
     //infinite runtime !!!!!!
 
 
+
     sf::RenderWindow window(sf::VideoMode({ width * CELLSIZE, height * CELLSIZE }), "CHIP-8 Screen");
+
+    window.setFramerateLimit(60);
+
     while (window.isOpen())
     {
         uint8_t incAmount = 2;
@@ -174,16 +183,16 @@ int main()
             if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
             {
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num1)) {
-                    key = 0x0;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num2)) {
                     key = 0x1;
                 }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num3)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num2)) {
                     key = 0x2;
                 }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num4)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num3)) {
                     key = 0x3;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Num4)) {
+                    key = 0xC;
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q)) {
                     key = 0x4;
@@ -195,28 +204,28 @@ int main()
                     key = 0x6;
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R)) {
-                    key = 0x7;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
-                    key = 0x8;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
-                    key = 0x9;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
-                    key = 0xA;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
-                    key = 0xB;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z)) {
-                    key = 0xC;
-                }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::X)) {
                     key = 0xD;
                 }
-                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::C)) {
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)) {
+                    key = 0x7;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)) {
+                    key = 0x8;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)) {
+                    key = 0x9;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F)) {
                     key = 0xE;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Z)) {
+                    key = 0xA;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::X)) {
+                    key = 0x0;
+                }
+                if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::C)) {
+                    key = 0xB;
                 }
                 if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::V)) {
                     key = 0xF;
@@ -233,6 +242,7 @@ int main()
         uint16_t current_Instruction = (RAM[PC] << 8) | RAM[PC + 0x1];
 
         //decode
+
         if (!waiting) {
 
             if (current_Instruction == 0x00E0) { //cls 00E0
@@ -266,7 +276,7 @@ int main()
                 if (SP > 0) {
                     SP--;
                     PC = Stack[SP];
-                    std::cout << PC << std::hex << " " << current_Instruction << " POPPED PC " << +Stack[SP] << " FROM STACK, PC = " << +PC << std::endl;
+                    std::cout << PC << " 00ee POPPED PC " << +Stack[SP] << " FROM STACK, PC = " << +PC << std::endl;
                 }
                 else {
                     std::cout << "STACK UNDERFLOW!!!";
@@ -278,7 +288,7 @@ int main()
                 uint32_t NNN = current_Instruction & 0x0FFF;
                 PC = NNN;
 
-                std::cout << PC << " " << std::hex << current_Instruction << " JUMP TO " << +NNN << " PC = " << +PC <<  std::endl;
+                std::cout << PC << " " << std::hex << current_Instruction << " JUMP TO " << +NNN << " PC = " << +PC << std::endl;
             }
             else if (current_Instruction >> 12 == 0x03) { //3XNN //skip next opcode if vX == NN (note: on platforms that have 4 byte opcodes, like F000 on XO-CHIP, this needs to skip four bytes)
                 uint8_t vX = (current_Instruction & 0x0F00) >> 8;
@@ -462,7 +472,7 @@ int main()
 
 
                     registers[vX] <<= 1;
-                    registers[15] = (temp & 0b10000000);
+                    registers[15] = (temp >> 7);
 
 
                     std::cout << PC << std::hex << " " << current_Instruction << " REGISTER " << +vX << " (" << +temp << ")" << " SHIFTED 1 BIT TO LEFT << " << +registers[vX] << " | vF = " << +registers[15] << std::endl;
@@ -532,6 +542,7 @@ int main()
                     incAmount = 0;
                     waiting = true;
                     std::cout << PC << " " << std::hex << current_Instruction << " Waiting for player input: " << +registers[vX] << " PC = " << +PC << std::endl;
+                    std::cout << "WAITING!" << std::endl;
                 }
                 else if ((current_Instruction & 0x00FF) == 0x29) { // sets I to mem address of font for relevant hex character (0-F)
                     incAmount = 2;
@@ -551,16 +562,17 @@ int main()
                     // FX18,   sound instruction
 
                 }
-                else if ((current_Instruction & 0x00FF) == 0x07) {
+                else if ((current_Instruction & 0x00FF) == 0x07) { // sets vX to value of delay timer
+                    uint8_t vX = (current_Instruction & 0x0F00) >> 8;
 
-                    // FX07,   timer instruction
-
+                    registers[vX] = delay;
+                    std::cout << PC << " " << std::hex << current_Instruction << " " << +vX << " SET TO DELAY VALUE " << delay << std::endl;
                 }
-                
+
             }
             else if (current_Instruction >> 12 == 0xE) { //EXA1, EX9E
                 if ((current_Instruction & 0x00FF) == 0xA1) {
-                    
+
                     uint8_t vX = (current_Instruction & 0x0F00) >> 8;
                     if ((registers[vX] & 0b00001111) == key) {
                         incAmount = 4;
@@ -585,12 +597,14 @@ int main()
                     // skip if key in vX is NOT pressed
                 }
             }
-
+        
             PC += incAmount;
+            if (delay > 0) {
+                delay--;
+            }
 
         }
-        else {
-            std::cout << "WAITING!" << std::endl;
+        if (waiting){
             if (key >= 0 && keyBool) {
                 std::cout << std::hex << current_Instruction << " KEY: " << +key << " PRESSED " << keyBool << std::endl;
                 uint8_t vX = (current_Instruction & 0x0F00) >> 8;
