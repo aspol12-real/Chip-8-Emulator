@@ -36,7 +36,7 @@ int main()
     bool keyBool = false;
     uint8_t key = 0xFF;
 
-    std::ifstream rom("roms/tetris.ch8", std::ios::in | std::ios::binary);
+    std::ifstream rom("roms/xmas.ch8", std::ios::in | std::ios::binary);
 
 
     //load font data into ram by hand
@@ -163,6 +163,8 @@ int main()
     while (window.isOpen())
     {
         uint8_t incAmount = 2;
+        keyBool = false;
+        key = 0xFF;
 
         while (const std::optional event = window.pollEvent())
         {
@@ -232,7 +234,6 @@ int main()
 
         //decode
         if (!waiting) {
-            current_Instruction = (RAM[PC] << 8) | RAM[PC + 0x1];
 
             if (current_Instruction == 0x00E0) { //cls 00E0
                 incAmount = 0x2;
@@ -284,7 +285,6 @@ int main()
                 uint16_t NN = (current_Instruction & 0x00FF);
                 if (registers[vX] == NN) {
                     incAmount = 4;
-                    PC += 4;
                     std::cout << PC << std::hex << " " << current_Instruction << " skipped X==NN, PC: " << +PC << " > " << +(PC + 0x4) << std::endl;
                 }
             }
@@ -563,7 +563,7 @@ int main()
                     
                     uint8_t vX = (current_Instruction & 0x0F00) >> 8;
                     if ((registers[vX] & 0b00001111) == key) {
-                        PC += 4;
+                        incAmount = 4;
                         std::cout << PC << " " << std::hex << current_Instruction << " KEY " << +registers[vX] << " PRESSED: SKIPPED!" << std::endl;
                     }
                     else {
@@ -575,7 +575,7 @@ int main()
 
                     uint8_t vX = (current_Instruction & 0x0F00) >> 8;
                     if ((registers[vX] & 0b00001111) != key) {
-                        PC += 4;
+                        incAmount = 4;
                         std::cout << PC << " " << std::hex << current_Instruction << " KEY " << +registers[vX] << " NOT PRESSED: SKIPPED!" << std::endl;
                     }
                     else {
