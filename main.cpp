@@ -20,7 +20,7 @@ int main()
     const int height = 32;
     const int CELLSIZE = 8;
 
-    const int INSTRUCTIONS_PER_FRAME = 1;
+    const int INSTRUCTIONS_PER_FRAME = 11;
 
     //memory
     uint8_t RAM[4096] = {};
@@ -39,7 +39,7 @@ int main()
     bool keyBool = false;
     uint8_t key = 0xFF;
 
-    std::ifstream rom("roms/octoachip8story.ch8", std::ios::in | std::ios::binary);
+    std::ifstream rom("roms/tetris.ch8", std::ios::in | std::ios::binary);
 
 
     //load font data into ram by hand
@@ -242,6 +242,7 @@ int main()
 
         //decode
         for (int i = 0; i < INSTRUCTIONS_PER_FRAME; i++) {
+            incAmount = 2;
             current_Instruction = (RAM[PC] << 8) | RAM[PC + 0x1];
             if (!waiting) {
 
@@ -345,7 +346,8 @@ int main()
                 else if (current_Instruction >> 12 == 0x0B) { //JMP to NNN + v0 BNNN
                     incAmount = 2;
                     uint32_t NNN = current_Instruction & 0x0FFF;
-                    PC = NNN + registers[0];
+                    uint8_t vX = (current_Instruction & 0x0F00) >> 8;
+                    PC = NNN + registers[vX];
                     std::cout << +PC << std::hex << " " << current_Instruction << " JMP TO " << +PC << std::endl;
                 }
                 else if (current_Instruction >> 12 == 0x0C) { //set vX to random number & NN CXNN
@@ -522,9 +524,8 @@ int main()
                     if ((current_Instruction & 0x00FF) == 0x65) { // load registers from ram v0 >> vX FX65
                         uint8_t vX = (current_Instruction & 0x0F00) >> 8;
                         for (int i = 0; i <= vX; i++) {
-                            registers[i] = RAM[I + i];
-
-
+                            registers[i] = RAM[I];
+                            I++;
                             std::cout << +PC << std::hex << " " << current_Instruction << " SAVE VALUE FROM ADDR " << std::hex << +I + i << " TO REGISTER " << i << " " << std::hex << +registers[i] << std::endl;
                         }
                     }
@@ -532,7 +533,8 @@ int main()
                         uint8_t vX = (current_Instruction & 0x0F00) >> 8;
                         incAmount = 2;
                         for (int i = 0; i <= vX; i++) {
-                            RAM[I + i] = registers[i];
+                            RAM[I] = registers[i];
+                            I++;
                             std::cout << +PC << std::hex << " " << current_Instruction << " SAVE VALUE " << std::hex << +registers[i] << " TO ADDR " << std::hex << +I + i << std::endl;
                         }
                     }
